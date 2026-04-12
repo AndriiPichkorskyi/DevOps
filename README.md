@@ -48,10 +48,31 @@
 - **Service** (LoadBalancer) для публікації сервісу назовні.
 - **HPA** для динамічного автомасштабування нашого сервісу від 2 до 6 подів при навантаженні > 70%.
 
+### Як розгорнути застосунок (Деплой)
+
+1. **Збірка та пуш Docker-образу в ECR**
+   Рекомендується збирати образ під процесори AMD64 (які використовуються в нашому AWS-кластері):
+   ```bash
+   docker build --platform linux/amd64 -t django-app:latest ./django
+   aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin <ВАШ_ECR_URL>
+   docker tag django-app:latest <ВАШ_ECR_URL>:latest
+   docker push <ВАШ_ECR_URL>:latest
+   ```
+
+2. **Підключення до EKS кластера**
+   ```bash
+   aws eks update-kubeconfig --region eu-north-1 --name eks-cluster-demo
+   ```
+
+3. **Запуск Helm Chart-у**
+   ```bash
+   helm install my-django ./charts/django-app
+   ```
+   *(Для оновлення конфігурації використовуйте `helm upgrade my-django ./charts/django-app`)*
+
 ## Команди для ініціалізації та запуску (Bootstrapping)
 
 Оскільки цей проєкт створює S3-бакет і DynamoDB-таблицю для зберігання власного стану (стейту), виникає класична проблема "курки та яйця" (Terraform потребує S3 для старту, але S3 створюється самим Terraform). Для першого розгортання "з нуля" використовується двоетапна ініціалізація:
-я
 
 1. **Тимчасово вимкніть S3-бекенд**
    Закоментуйте вміст файлу `backend.tf` (або перейменуйте його на `backend.tf.bak`), щоб Terraform використовував локальний стейт.
