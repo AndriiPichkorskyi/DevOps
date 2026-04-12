@@ -5,9 +5,9 @@ provider "aws" {
 
 # Підключаємо модуль для S3 та DynamoDB
 module "s3_backend" {
-  source      = "./modules/s3-backend"                        # Шлях до модуля
-  bucket_name = "andriip-lesson5-tf-state-bucket-1775637482-053639"             # Ім'я S3-бакета
-  table_name  = "terraform-locks"                             # Ім'я DynamoDB
+  source      = "./modules/s3-backend"                              # Шлях до модуля
+  bucket_name = "andriip-lesson5-tf-state-bucket-1775637482-053639" # Ім'я S3-бакета
+  table_name  = "terraform-locks"                                   # Ім'я DynamoDB
 }
 
 # Підключаємо модуль для VPC
@@ -25,4 +25,14 @@ module "ecr" {
   source       = "./modules/ecr"
   ecr_name     = "lesson-5-ecr"
   scan_on_push = true
+}
+
+module "eks" {
+  source        = "./modules/eks"
+  cluster_name  = "eks-cluster-demo"        # Назва кластера
+  subnet_ids    = module.vpc.public_subnets # ID підмереж
+  instance_type = "t2.micro"                # Тип інстансів
+  desired_size  = 1                         # Бажана кількість нодів
+  max_size      = 2                         # Максимальна кількість нодів
+  min_size      = 1                         # Мінімальна кількість нодів
 }
