@@ -1,5 +1,5 @@
 image:
-  repository: 123456789012.dkr.ecr.eu-central-1.amazonaws.com/django-app
+  repository: 891377024254.dkr.ecr.eu-north-1.amazonaws.com/lesson-5-ecr
   tag: latest
   pullPolicy: Always
 
