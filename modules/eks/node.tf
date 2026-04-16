@@ -80,6 +80,6 @@ resource "aws_eks_node_group" "general" {
     aws_iam_role_policy_attachment.amazon_ec2_container_registry_read_only,
   ]
 
-  # lifecycle block removed so desired_size can be updated
+
 }
 

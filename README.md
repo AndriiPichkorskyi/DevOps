@@ -1,111 +1,246 @@
-# Домашнє завдання до теми «IaC (Terraform)»
+# CI/CD Infrastructure: Jenkins + Argo CD on AWS EKS
 
-Цей проєкт призначений для створення базової інфраструктури в AWS за допомогою Terraform. Він містить налаштування для зберігання стану Terraform (S3 та DynamoDB), мережевої інфраструктури (VPC) та репозиторію для зберігання Docker-образів (ECR).
+Цей проєкт автоматизує повний CI/CD процес для Django-застосунку з використанням **Jenkins** (CI), **Argo CD** (CD), **Helm** та **Terraform** на кластері **Amazon EKS**.
 
-## Граф Інфраструктури
+---
 
-![Terraform Graph](./graph.svg)
+## Скріншоти
+
+### Jenkins — Успішний CI Pipeline
+
+![Jenkins Pipeline](./screenshots/jenkins.webp)
+
+### Argo CD — Синхронізований застосунок
+
+![Argo CD](./screenshots/argocd.webp)
+
+### Django — Задеплоєний застосунок
+
+![Django App](./screenshots/django.webp)
+
+### Граф Інфраструктури
+
+![Terraform Graph](./screenshots/graph.svg)
+
+---
+
+## Схема CI/CD процесу
+
+```
+Зміна коду в GitHub
+       │
+       ▼
+  Jenkins Pipeline
+  ┌─────────────────────────────────┐
+  │ 1. Kaniko: збирає Docker-образ  │
+  │ 2. Пушить образ в AWS ECR       │
+  │ 3. Оновлює tag у values.yaml    │
+  │ 4. Пушить зміни в GitHub        │
+  └─────────────────────────────────┘
+       │
+       ▼
+  Git репозиторій (values.yaml оновлено)
+       │
+       ▼
+  Argo CD (автоматично виявляє зміни)
+       │
+       ▼
+  Kubernetes (EKS): деплоїть нову версію
+```
+
+---
 
 ## Структура проєкту
 
-- **main.tf** — головний файл, у якому підключаються та налаштовуються всі модулі.
-- **backend.tf** — конфігурація бекенду для зберігання файлів стану Terraform у S3 з використанням DynamoDB для блокування.
-- **outputs.tf** — файл для виведення загальних даних про створені ресурси.
-- **variables.tf** — файл для збереження глобальних змінних.
-- **modules/** — директорія, де знаходяться всі модулі:
-  - **s3-backend/** — модуль для створення S3-бакета з версіонуванням та таблиці DynamoDB для блокування.
-  - **vpc/** — модуль для розгортання мережевої інфраструктури (VPC, публічні та приватні підмережі, Internet Gateway).
-  - **ecr/** — модуль для створення Amazon Elastic Container Registry (ECR) для зберігання Docker-образів та налаштування політик життєвого циклу.
+```
+devops/
+├── main.tf                  # Підключення всіх модулів
+├── backend.tf               # Terraform backend (S3 + DynamoDB)
+├── outputs.tf               # Виводи ресурсів
+├── Jenkinsfile              # CI pipeline (збірка, пуш, оновлення тегу)
+│
+├── modules/
+│   ├── s3-backend/          # S3 для стейту + DynamoDB для локінгу
+│   ├── vpc/                 # VPC, публічні/приватні підмережі, NAT
+│   ├── ecr/                 # ECR репозиторій для Docker-образів
+│   ├── eks/                 # EKS кластер + node group + EBS CSI driver
+│   ├── jenkins/             # Jenkins (Helm) + IRSA для ECR + JCasC
+│   └── argo_cd/             # Argo CD (Helm) + Application CRDs
+│       └── charts/          # Helm-чарт для створення Argo CD Applications
+│
+├── charts/
+│   └── django-app/          # Helm-чарт Django застосунку
+│       ├── templates/
+│       │   ├── deployment.yaml
+│       │   ├── service.yaml
+│       │   ├── configmap.yaml
+│       │   ├── hpa.yaml
+│       │   └── postgres.yaml  # PostgreSQL deployment + service
+│       └── values.yaml
+│
+└── django/                  # Вихідний код Django + Dockerfile
+```
 
-## Опис модулів
+---
 
-### Module: `s3-backend`
+## Передумови
 
-Створює S3-бакет для зберігання `terraform.tfstate`. Бакет має ввімкнене версіонування для безпеки та можливості відновлення попередніх станів. Також створюється таблиця DynamoDB, яка використовується для блокування стану (Locking), щоб уникнути конфліктів при одночасній роботі кількох процесів.
+- AWS CLI налаштований (`aws configure`)
+- Встановлені: `terraform`, `kubectl`, `helm`
+- GitHub токен (PAT) з правами `repo`
 
-### Module: `vpc`
+---
 
-Організовує мережеву інфраструктуру:
+## Розгортання інфраструктури
 
-- Створює VPC із визначеним CIDR-блоком.
-- Створює три публічні та три приватні підмережі в різних зонах доступності.
-- Налаштовує Internet Gateway для доступу в інтернет з публічних підмереж.
+### ⚠️ Перший запуск (bootstrapping) — обов'язково!
 
-### Module: `ecr`
+Існує класична проблема "курки та яйця": Terraform потребує S3-бакет для зберігання стейту, але сам S3-бакет створюється Terraform. Тому перший запуск відбувається у **3 етапи**:
 
-Створює приватний репозиторій Amazon ECR для зберігання образів контейнерів в AWS. Увімкнене автоматичне сканування образів на вразливості (`scan_on_push = true`) та налаштована політика життєвого циклу (Lifecycle Policy), яка автоматично видаляє старі образи (залишає лише 10 останніх).
+**Етап 1: Закоментуй S3-бекенд**
 
-### Module: `eks`
+Відкрий `backend.tf` і закоментуй весь блок:
 
-Створює кластер Amazon Elastic Kubernetes Service (EKS). Цей модуль налаштовує підключення кластера до наших публічних/приватних підмереж та базову групу вузлів (managed node group) для запуску контейнерів.
+```hcl
+# terraform {
+#   backend "s3" {
+#     bucket         = "..."
+#     ...
+#   }
+# }
+```
 
-## Робота з Helm (Деплой застосунку)
+**Етап 2: Створи тільки S3-бекенд і DynamoDB**
 
-У директорії `charts/django-app/` знаходиться повноцінний Helm Chart для розгортання робочого застосунку на Django.
-Реалізовано такі ресурси:
-- **Deployment** із підключенням образу з власного ECR через змінні середовища та визначеними request/limit ресурсами.
-- **ConfigMap** (`envFrom`) для передачі конфігів бази даних.
-- **Service** (LoadBalancer) для публікації сервісу назовні.
-- **HPA** для динамічного автомасштабування нашого сервісу від 2 до 6 подів при навантаженні > 70%.
+```bash
+terraform init
+terraform apply -target=module.s3_backend
+```
 
-### Як розгорнути застосунок (Деплой)
+_Це створить лише S3-бакет і DynamoDB-таблицю для зберігання стейту._
 
-1. **Збірка та пуш Docker-образу в ECR**
-   Рекомендується збирати образ під процесори AMD64 (які використовуються в нашому AWS-кластері):
-   ```bash
-   docker build --platform linux/amd64 -t django-app:latest ./django
-   aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin <ВАШ_ECR_URL>
-   docker tag django-app:latest <ВАШ_ECR_URL>:latest
-   docker push <ВАШ_ECR_URL>:latest
-   ```
+**Етап 3: Розкоментуй S3-бекенд і перенеси стейт у хмару**
 
-2. **Підключення до EKS кластера**
-   ```bash
-   aws eks update-kubeconfig --region eu-north-1 --name eks-cluster-demo
-   ```
+Розкоментуй блок у `backend.tf`, потім:
 
-3. **Запуск Helm Chart-у**
-   ```bash
-   helm install my-django ./charts/django-app
-   ```
-   *(Для оновлення конфігурації використовуйте `helm upgrade my-django ./charts/django-app`)*
+```bash
+terraform init
+# Terraform запитає: "Do you want to migrate state?" → введи: yes
+```
 
-## Команди для ініціалізації та запуску (Bootstrapping)
+_Тепер стейт безпечно зберігається в AWS S3._
 
-Оскільки цей проєкт створює S3-бакет і DynamoDB-таблицю для зберігання власного стану (стейту), виникає класична проблема "курки та яйця" (Terraform потребує S3 для старту, але S3 створюється самим Terraform). Для першого розгортання "з нуля" використовується двоетапна ініціалізація:
+**Етап 4: Розгорни всю інфраструктуру**
 
-1. **Тимчасово вимкніть S3-бекенд**
-   Закоментуйте вміст файлу `backend.tf` (або перейменуйте його на `backend.tf.bak`), щоб Terraform використовував локальний стейт.
+```bash
+terraform apply
+```
 
-2. **Перша ініціалізація та створення бекенду**
-   Виконайте ці команди для створення S3 та DynamoDB в AWS:
+_Terraform створить VPC, EKS, Jenkins, Argo CD і всі інші ресурси._
 
-   ```bash
-   terraform init
-   terraform apply -target=module.s3_backend
-   ```
+### 2. Підключення до кластера
 
-   _(Підтвердьте створення, ввівши `yes`)_
+```bash
+aws eks update-kubeconfig --region eu-north-1 --name eks-cluster-demo-v2
+```
 
-3. **Міграція стейту в S3**
-   Розкоментуйте або поверніть файл `backend.tf`. Потім виконайте міграцію локального стейту у створений AWS S3 бакет:
+### 3. Перевірка розгорнутих компонентів
 
-   ```bash
-   terraform init
-   ```
+```bash
+# Всі поди системи
+kubectl get pods -A
 
-   _(Підтвердьте міграцію стейту, ввівши `yes`)_
+# Jenkins
+kubectl get svc -n jenkins
 
-4. **Розгортання всієї інфраструктури**
-   Тепер стейт безпечно зберігається в хмарі. Можна розгорнути всі інші ресурси (VPC, NAT, ECR):
-   ```bash
-   terraform apply
-   ```
+# Argo CD
+kubectl get svc -n argocd
 
-### Звичайне використання
+# Django застосунок
+kubectl get pods -n default
+kubectl get svc -n default
+```
 
-Коли інфраструктуру вже ініціалізовано:
+---
 
-- `terraform plan` — перегляд плану змін.
-- `terraform apply` — застосування нових змін в AWS.
-- `terraform destroy` — видалення всіх створених ресурсів. _(Примітка: через спільне керування бекендом, під час повного знищення може знадобитись ручне очищення/видалення S3-бакета після того, як DynamoDB таблиця буде знищена)._
+## Налаштування секретів (перед першим apply)
+
+Відкрий файл `modules/jenkins/values.yaml` і заміни:
+
+```yaml
+JCasC:
+  configScripts:
+    credentials: |
+      credentials:
+        system:
+          domainCredentials:
+            - credentials:
+                - usernamePassword:
+                    username: YOUR_GITHUB_USERNAME
+                    password: "TODO: secret key here"  # ← вставити GitHub PAT
+```
+
+---
+
+## Доступ до сервісів
+
+### Jenkins
+
+```bash
+kubectl get svc -n jenkins
+# Відкрий EXTERNAL-IP у браузері (порт 80)
+# Login: admin / Password: admin123
+```
+
+### Argo CD
+
+```bash
+kubectl get svc -n argocd
+# Відкрий EXTERNAL-IP у браузері
+
+# Пароль адміністратора:
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
+```
+
+### Django застосунок
+
+```bash
+kubectl get svc -n default
+# Відкрий EXTERNAL-IP (порт 80) у браузері
+```
+
+---
+
+## Як запустити CI/CD пайплайн
+
+1. Зайди в Jenkins UI
+2. Запусти джобу **`seed-job`** → вона створить **`goit-django-docker`**
+3. Затвердь скрипт: **Manage Jenkins → In-process Script Approval → Approve**
+4. Запусти **`goit-django-docker`** → Jenkins збере образ, запушить в ECR і оновить тег
+5. Argo CD автоматично виявить зміну і задеплоїть нову версію в Kubernetes
+
+---
+
+## Знищення інфраструктури
+
+> ⚠️ **EKS Control Plane коштує ~$0.10/год.** Завжди видаляй ресурси після роботи!
+
+```bash
+terraform destroy
+```
+
+---
+
+## Технічний стек
+
+| Компонент             | Технологія                        |
+| --------------------- | --------------------------------- |
+| Інфраструктура як код | Terraform                         |
+| Хмарний провайдер     | AWS (EKS, ECR, VPC, S3, DynamoDB) |
+| Kubernetes            | Amazon EKS (`t3.small` nodes)     |
+| CI (збірка образів)   | Jenkins + Kaniko                  |
+| CD (деплой)           | Argo CD                           |
+| Пакетний менеджер     | Helm                              |
+| Застосунок            | Django + PostgreSQL               |
+| Реєстр образів        | Amazon ECR                        |

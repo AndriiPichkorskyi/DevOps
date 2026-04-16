@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "this" {
   name                 = var.ecr_name
   image_tag_mutability = "MUTABLE" # Дозволяє перезаписувати теги (наприклад, latest)
+  force_delete         = true      # Дозволяє видаляти репозиторій навіть якщо він не порожній
 
   image_scanning_configuration {
     scan_on_push = var.scan_on_push

@@ -1,0 +1,28 @@
+applications:
+  - name: example-app
+    namespace: default
+    project: default
+    source:
+      repoURL: "https://github.com/AndriiPichkorskyi/DevOps.git"
+      path: charts/django-app
+      targetRevision: lesson-4
+      helm:
+        valueFiles:
+          - values.yaml
+    destination:
+      server: "https://kubernetes.default.svc"
+      namespace: default
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+repositories:
+  - name: example-app
+    url: "https://github.com/AndriiPichkorskyi/DevOps.git"
+    # username: AndriiPichkorskyi
+    # password: YOUR_GITHUB_PAT
+
+repoConfig:
+  insecure: "true"
+  enableLfs: "true"

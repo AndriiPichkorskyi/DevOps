@@ -29,10 +29,57 @@ module "ecr" {
 
 module "eks" {
   source        = "./modules/eks"
-  cluster_name  = "eks-cluster-demo"        # Назва кластера
-  subnet_ids    = module.vpc.public_subnets # ID підмереж
-  instance_type = "t3.micro"                # Тип інстансів
-  desired_size  = 2                         # Бажана кількість нодів
-  max_size      = 6                         # Максимальна кількість нодів
-  min_size      = 2                         # Мінімальна кількість нодів
+  cluster_name  = "eks-cluster-demo-v2"      # Назва кластера
+  subnet_ids    = module.vpc.private_subnets # ID підмереж
+  instance_type = "t3.small"                 # Тип інстансів
+  desired_size  = 2                          # Бажана кількість нодів
+  max_size      = 6                          # Максимальна кількість нодів
+  min_size      = 2                          # Мінімальна кількість нодів
 }
+
+data "aws_eks_cluster" "eks" {
+  name       = module.eks.eks_cluster_name
+  depends_on = [module.eks]
+}
+
+data "aws_eks_cluster_auth" "eks" {
+  name       = module.eks.eks_cluster_name
+  depends_on = [module.eks]
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = data.aws_eks_cluster.eks.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.eks.token
+  }
+}
+
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.eks.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.eks.token
+}
+
+module "jenkins" {
+  source            = "./modules/jenkins"
+  cluster_name      = module.eks.eks_cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+
+  providers = {
+    helm       = helm
+    kubernetes = kubernetes
+    aws        = aws
+  }
+}
+
+
+module "argo_cd" {
+  source        = "./modules/argo_cd"
+  namespace     = "argocd"
+  chart_version = "5.46.4"
+}
+
+

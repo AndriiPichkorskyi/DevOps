@@ -50,7 +50,20 @@ output "eks_cluster_name" {
   value       = module.eks.eks_cluster_name
 }
 
+
+
 output "eks_node_role_arn" {
   description = "IAM role ARN for EKS Worker Nodes"
   value       = module.eks.eks_node_role_arn
 }
+
+#-------------jenkins-----------------
+
+output "jenkins_release" {
+  value = module.jenkins.jenkins_release_name
+}
+
+output "jenkins_namespace" {
+  value = module.jenkins.jenkins_namespace
+}
+
