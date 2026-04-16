@@ -9,9 +9,9 @@ service:
   targetPort: 8000
 
 autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 6
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
   targetCPUUtilizationPercentage: 70
 
 config: # Змінні середовища (env) з 4-ї теми
