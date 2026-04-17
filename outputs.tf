@@ -67,3 +67,9 @@ output "jenkins_namespace" {
   value = module.jenkins.jenkins_namespace
 }
 
+#-------------RDS-----------------
+
+output "rds_endpoint" {
+  description = "Endpoint бази даних RDS"
+  value       = module.rds.endpoint
+}
