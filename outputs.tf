@@ -73,3 +73,17 @@ output "rds_endpoint" {
   description = "Endpoint бази даних RDS"
   value       = module.rds.endpoint
 }
+
+#-------------URLs Helper-----------------
+
+output "get_all_urls_command" {
+  description = "Команди для швидкого отримання всіх публічних URL за допомогою kubectl"
+  value       = <<EOF
+
+# Щоб миттєво отримати всі URL-адреси до ваших сервісів, виконайте:
+echo "Jenkins URL:  http://$(kubectl get svc jenkins -n jenkins -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+echo "ArgoCD URL:   http://$(kubectl get svc argo-cd-argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+echo "Django App:   http://$(kubectl get svc example-app-django -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+
+EOF
+}

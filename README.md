@@ -22,6 +22,10 @@
 
 ![RDS Database](./screenshots/db.webp)
 
+### Grafana — Моніторинг і Дашборди
+
+![Grafana Dashboard](./screenshots/grafana.webp)
+
 ### Граф Інфраструктури
 
 ![Terraform Graph](./screenshots/graph.svg)
@@ -218,6 +222,22 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ```bash
 kubectl get svc -n default
 # Відкрий EXTERNAL-IP (порт 80) у браузері
+```
+
+### Grafana та Prometheus (Локальний доступ)
+
+Моніторинг працює всередині кластера (ClusterIP). Щоб отримати до нього доступ з браузера, виконайте наступні команди (шлюз буде активним, поки термінал відкритий):
+
+**Для Grafana:**
+```bash
+kubectl port-forward svc/prometheus-grafana 3000:80 -n monitoring
+# Відкрий http://localhost:3000 (Логін: admin / Пароль: ваш grafana_password)
+```
+
+**Для Prometheus:**
+```bash
+kubectl port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n monitoring
+# Відкрий http://localhost:9090
 ```
 
 ---
