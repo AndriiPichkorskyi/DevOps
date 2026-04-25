@@ -63,7 +63,7 @@ spec:
               git clone "https://${GIT_USERNAME}:${GIT_PAT}@github.com/AndriiPichkorskyi/DevOps.git"
               cd DevOps
               
-              git checkout lesson-4
+              git checkout final-project
 
               # Міняємо тег у чарті
               sed -i "s/tag: .*/tag: $IMAGE_TAG/" charts/django-app/values.yaml
@@ -74,7 +74,7 @@ spec:
               git add charts/django-app/values.yaml
               git commit -m "Update image tag to $IMAGE_TAG"
               
-              git push origin lesson-4
+              git push origin final-project
             '''
           }
         }

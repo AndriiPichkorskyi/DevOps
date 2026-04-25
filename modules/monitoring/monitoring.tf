@@ -5,10 +5,11 @@ resource "helm_release" "prometheus" {
   namespace        = "monitoring"
   create_namespace = true
   version          = "56.6.2"
+  timeout          = 600
 
-  # Задаємо дефолтний пароль для Grafana (admin / admin)
-  set {
-    name  = "grafana.adminPassword"
-    value = "admin_PASSWORD_HERE"
-  }
+  values = [
+    templatefile("${path.module}/values.yaml", {
+      grafana_password = var.grafana_password
+    })
+  ]
 }

@@ -5,7 +5,7 @@ applications:
     source:
       repoURL: "https://github.com/AndriiPichkorskyi/DevOps.git"
       path: charts/django-app
-      targetRevision: lesson-4
+      targetRevision: final-project
       helm:
         valueFiles:
           - values.yaml

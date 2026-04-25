@@ -15,3 +15,9 @@ variable "jenkins_password" {
   type        = string
   sensitive   = true
 }
+
+variable "grafana_password" {
+  description = "Пароль адміністратора Grafana"
+  type        = string
+  sensitive   = true
+}

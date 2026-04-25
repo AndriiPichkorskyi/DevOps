@@ -16,7 +16,7 @@ resource "kubernetes_storage_class_v1" "ebs_sc" {
   }
 }
 
-resource "kubernetes_service_account" "jenkins_sa" {
+resource "kubernetes_service_account_v1" "jenkins_sa" {
   metadata {
     name      = "jenkins-sa"
     namespace = "jenkins"

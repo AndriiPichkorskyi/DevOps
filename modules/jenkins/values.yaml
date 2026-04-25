@@ -61,7 +61,7 @@ controller:
                       url('https://github.com/AndriiPichkorskyi/DevOps.git')
                       credentials('github-token')
                     }
-                    branches('*/lesson-4')
+                    branches('*/final-project')
                   }
                 }
                 steps {
@@ -76,9 +76,10 @@ controller:
                                   url("https://github.com/AndriiPichkorskyi/DevOps.git")
                                   credentials("github-token")
                                 }
-                                branches("*/lesson-4")
+                                branches("*/final-project")
                               }
                             }
+                            scriptPath("Django/Jenkinsfile")
                           }
                         }
                       }

@@ -32,19 +32,17 @@ module "eks" {
   cluster_name  = "eks-cluster-demo-v2"      # Назва кластера
   subnet_ids    = module.vpc.private_subnets # ID підмереж
   instance_type = "t3.small"                 # Тип інстансів
-  desired_size  = 2                          # Бажана кількість нодів
+  desired_size  = 3                          # Бажана кількість нодів
   max_size      = 6                          # Максимальна кількість нодів
-  min_size      = 2                          # Мінімальна кількість нодів
+  min_size      = 3                          # Мінімальна кількість нодів
 }
 
 data "aws_eks_cluster" "eks" {
-  name       = module.eks.eks_cluster_name
-  depends_on = [module.eks]
+  name = module.eks.eks_cluster_name
 }
 
 data "aws_eks_cluster_auth" "eks" {
-  name       = module.eks.eks_cluster_name
-  depends_on = [module.eks]
+  name = module.eks.eks_cluster_name
 }
 
 provider "helm" {
@@ -130,6 +128,12 @@ module "rds" {
 
 module "monitoring" {
   source = "./modules/monitoring"
+
+  grafana_password = var.grafana_password
+
+  providers = {
+    helm = helm
+  }
 
   depends_on = [module.eks]
 }
