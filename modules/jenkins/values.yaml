@@ -1,7 +1,7 @@
 controller:
   admin:
     username: admin
-    password: admin987VERYHARDPASSOWORD
+    password: ${jenkins_password}
 
   serviceType: LoadBalancer
   servicePort: 80
@@ -48,7 +48,7 @@ controller:
                       scope: GLOBAL
                       id: github-token
                       username: AndriiPichkorskyi
-                      password: "TODO: secret key here"
+                      password: ${github_token}
                       description: GitHub PAT
       seed-job: |
         jobs:

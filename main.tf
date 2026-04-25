@@ -68,6 +68,9 @@ module "jenkins" {
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.oidc_provider_url
 
+  github_token     = var.github_token
+  jenkins_password = var.jenkins_password
+
   providers = {
     helm       = helm
     kubernetes = kubernetes
@@ -111,7 +114,7 @@ module "rds" {
   vpc_id                  = module.vpc.vpc_id
   multi_az                = false # Multi-AZ не доступний на Free Tier
   backup_retention_period = 1
-  skip_final_snapshot     = true  # dev середовище — snapshot не потрібен
+  skip_final_snapshot     = true # dev середовище — snapshot не потрібен
   parameters = {
     max_connections            = "200"
     log_min_duration_statement = "500"
@@ -122,5 +125,11 @@ module "rds" {
     Project     = "myapp"
   }
 
-  depends_on = [module.vpc]  # Чекати поки VPC + IGW + Routes будуть готові
+  depends_on = [module.vpc] # Чекати поки VPC + IGW + Routes будуть готові
+}
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  depends_on = [module.eks]
 }

@@ -12,3 +12,11 @@ variable "oidc_provider_url" {
   description = "OIDC Provider URL for IRSA"
   type        = string
 }
+
+variable "github_token" {
+  type = string
+}
+
+variable "jenkins_password" {
+  type = string
+}
