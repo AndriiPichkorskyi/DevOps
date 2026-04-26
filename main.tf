@@ -38,11 +38,13 @@ module "eks" {
 }
 
 data "aws_eks_cluster" "eks" {
-  name = module.eks.eks_cluster_name
+  name       = module.eks.eks_cluster_name
+  depends_on = [module.eks]
 }
 
 data "aws_eks_cluster_auth" "eks" {
-  name = module.eks.eks_cluster_name
+  name       = module.eks.eks_cluster_name
+  depends_on = [module.eks]
 }
 
 provider "helm" {
@@ -105,12 +107,13 @@ module "rds" {
   allocated_storage       = 20
   db_name                 = "myapp"
   username                = "postgres"
-  password                = "admin123AWS23"
+  password                = var.rds_password
   subnet_private_ids      = module.vpc.private_subnets
   subnet_public_ids       = module.vpc.public_subnets
   publicly_accessible     = true
   vpc_id                  = module.vpc.vpc_id
-  multi_az                = false # Multi-AZ не доступний на Free Tier
+  vpc_cidr_block          = module.vpc.vpc_cidr_block # CIDR VPC для Security Group
+  multi_az                = false                     # Multi-AZ не доступний на Free Tier
   backup_retention_period = 1
   skip_final_snapshot     = true # dev середовище — snapshot не потрібен
   parameters = {

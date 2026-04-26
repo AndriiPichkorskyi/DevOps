@@ -4,6 +4,7 @@ resource "helm_release" "argo_cd" {
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   version    = var.chart_version
+  timeout    = 600
 
   values = [
     file("${path.module}/values.yaml")

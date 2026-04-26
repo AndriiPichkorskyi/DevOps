@@ -21,3 +21,9 @@ variable "grafana_password" {
   type        = string
   sensitive   = true
 }
+
+variable "rds_password" {
+  description = "Пароль master-користувача RDS"
+  type        = string
+  sensitive   = true
+}

@@ -72,6 +72,11 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "vpc_cidr_block" {
+  description = "CIDR-блок VPC — використовується для обмеження доступу до RDS лише з межами VPC"
+  type        = string
+}
+
 variable "subnet_private_ids" {
   description = "Список ID приватних підмереж для subnet group (використовується коли publicly_accessible = false)"
   type        = list(string)
